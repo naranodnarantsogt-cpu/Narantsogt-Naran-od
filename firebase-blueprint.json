@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "ScoreEntry": {
+      "title": "ScoreEntry",
+      "description": "Represents a single player or multiplayer game high score entry",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the player"
+        },
+        "wpm": {
+          "type": "integer",
+          "description": "Words per minute speed reached"
+        },
+        "errors": {
+          "type": "integer",
+          "description": "Total typo errors made during the run"
+        },
+        "accuracy": {
+          "type": "integer",
+          "description": "Accuracy percentage (0 to 100)"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the score was saved"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["single", "multi"],
+          "description": "Game mode"
+        }
+      },
+      "required": ["name", "wpm", "errors", "accuracy", "mode"]
+    },
+    "PlayerState": {
+      "title": "PlayerState",
+      "description": "Represents the active state of a player inside a multiplayer room",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "progress": {
+          "type": "number"
+        },
+        "wpm": {
+          "type": "integer"
+        },
+        "errors": {
+          "type": "integer"
+        },
+        "isFinished": {
+          "type": "boolean"
+        },
+        "vehicle": {
+          "type": "string",
+          "enum": ["slow", "fast", "fastest"]
+        },
+        "finishedAt": {
+          "type": "integer"
+        }
+      },
+      "required": ["id", "name", "progress", "wpm", "errors", "isFinished", "vehicle"]
+    },
+    "RoomState": {
+      "title": "RoomState",
+      "description": "Represents a multiplayer room session",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "countdown", "playing"]
+        },
+        "sentence": {
+          "type": "string"
+        },
+        "countdown": {
+          "type": "integer"
+        },
+        "startTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "creatorId": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "players": {
+          "type": "object",
+          "description": "Map of playerId to PlayerState"
+        }
+      },
+      "required": ["status", "sentence", "creatorId", "players"]
+    }
+  },
+  "firestore": {
+    "typeracer_scores": {
+      "schema": "ScoreEntry",
+      "description": "Global leaderboard score entries"
+    },
+    "typeracer_rooms": {
+      "schema": "RoomState",
+      "description": "Multiplayer rooms"
+    }
+  }
+}

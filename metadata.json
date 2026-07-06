@@ -1,0 +1,6 @@
+{
+  "name": "Typeracer",
+  "description": "Монгол болон Англи хэл дээр хурдан бичих уралдаан. Найзуудтайгаа real-time multiplayer горимоор өрсөлдөх боломжтой.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
