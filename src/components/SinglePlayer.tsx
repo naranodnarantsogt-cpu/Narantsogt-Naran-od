@@ -25,7 +25,7 @@ export function SinglePlayer() {
   // Game state
   const [sentence, setSentence] = useState<Sentence | null>(null);
   const [inputText, setInputText] = useState("");
-  const [gameState, setGameState] = useState<"idle" | "playing" | "completed">("idle");
+  const [gameState, setGameState] = useState<"idle" | "playing" | "completed" | "failed">("idle");
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0); // in seconds
   const [errorCount, setErrorCount] = useState(0);
@@ -38,6 +38,12 @@ export function SinglePlayer() {
   const lastInputLength = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const getLimitSeconds = (v: VehicleType): number => {
+    if (v === "slow") return 60;
+    if (v === "fast") return 120;
+    return 140;
+  };
 
   // Load initial random sentence or reload when settings change before starting
   useEffect(() => {
@@ -55,9 +61,18 @@ export function SinglePlayer() {
   // Handle timer
   useEffect(() => {
     if (gameState === "playing" && startTime !== null) {
+      const limit = getLimitSeconds(vehicle);
       timerRef.current = setInterval(() => {
         const elapsed = (Date.now() - startTime) / 1000;
-        setElapsedTime(elapsed);
+        if (elapsed >= limit) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          setElapsedTime(limit);
+          setGameState("failed");
+        } else {
+          setElapsedTime(elapsed);
+        }
       }, 100);
     } else {
       if (timerRef.current) {
@@ -70,7 +85,7 @@ export function SinglePlayer() {
         clearInterval(timerRef.current);
       }
     };
-  }, [gameState, startTime]);
+  }, [gameState, startTime, vehicle]);
 
   // Focus input when game starts
   useEffect(() => {
@@ -411,10 +426,16 @@ export function SinglePlayer() {
                   <span className="text-[10px] font-mono text-slate-500 uppercase block">Алдаа</span>
                   <span className="text-xl font-black font-mono text-rose-400">{errorCount}</span>
                 </div>
-                <div className="bg-slate-950/40 rounded-xl p-3 border border-slate-800 text-center">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Хугацаа</span>
-                  <span className="text-xl font-black font-mono text-indigo-400">
-                    {Math.floor(elapsedTime)}s
+                <div className={`bg-slate-950/40 rounded-xl p-3 border text-center transition-all duration-300 ${
+                  getLimitSeconds(vehicle) - elapsedTime <= 10
+                    ? "border-rose-500/50 bg-rose-950/10 shadow-[0_0_10px_rgba(239,68,68,0.1)] animate-pulse"
+                    : "border-slate-800"
+                }`}>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Үлдсэн хугацаа</span>
+                  <span className={`text-xl font-black font-mono ${
+                    getLimitSeconds(vehicle) - elapsedTime <= 10 ? "text-rose-400" : "text-indigo-400"
+                  }`}>
+                    {Math.max(0, Math.ceil(getLimitSeconds(vehicle) - elapsedTime))}s
                   </span>
                 </div>
               </div>
@@ -478,9 +499,59 @@ export function SinglePlayer() {
                 <button
                   type="button"
                   onClick={handlePlayAgain}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 px-6 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 px-6 rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer font-sans"
                 >
                   <RotateCcw className="w-4 h-4" /> ДАХИН ТОГЛОХ
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Failed Screen Card */}
+          {gameState === "failed" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-slate-900/80 backdrop-blur-md border border-red-500/20 rounded-3xl p-8 shadow-2xl text-center space-y-6 max-w-xl mx-auto relative overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-rose-600 to-red-500" />
+              <div className="absolute -top-12 -left-12 w-32 h-32 bg-red-500/5 rounded-full blur-2xl" />
+              <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl" />
+
+              <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 flex items-center justify-center text-3xl mx-auto animate-pulse">
+                ⏱️
+              </div>
+
+              <div>
+                <h3 className="text-2xl font-black text-slate-100">Хугацаа дууслаа!</h3>
+                <p className="text-sm text-slate-400 mt-1">Та уралдааныг амжилттай дуусгаж чадсангүй.</p>
+                <div className="mt-3 bg-red-500/10 border border-red-500/20 px-3 py-1 text-red-400 rounded-full w-max mx-auto text-xs font-semibold">
+                  Түвшин: {vehicle === "slow" ? "Амархан" : vehicle === "fast" ? "Дундаж" : "Хэцүү"}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 bg-slate-950/50 rounded-2xl p-4 border border-slate-800/80">
+                <div>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Амжилт</span>
+                  <span className="text-xl font-black text-rose-400 font-mono">
+                    {Math.round(progressPercent)}%
+                  </span>
+                  <span className="text-[10px] text-slate-400 block font-mono">Гүйцэтгэл</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono text-slate-500 uppercase block">Алдаа</span>
+                  <span className="text-xl font-black text-rose-400 font-mono">{errorCount}</span>
+                  <span className="text-[10px] text-slate-400 block">Удаа</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handlePlayAgain}
+                  className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-slate-950 font-black py-3.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-500/10 hover:shadow-red-500/20 font-sans"
+                >
+                  <RotateCcw className="w-4 h-4" /> ДАХИН ОРОЛДОХ
                 </button>
               </div>
             </motion.div>

@@ -12,8 +12,9 @@ export function Leaderboard() {
 
   useEffect(() => {
     const scoresRef = collection(db, "typeracer_scores");
-    // Fetch top 150 scores to allow robust, zero-latency client-side filtering without requiring new Firestore indexes
-    const q = query(scoresRef, orderBy("wpm", "desc"), orderBy("timestamp", "asc"), limit(150));
+    // Fetch top 150 scores to allow robust, zero-latency client-side filtering without requiring new Firestore indexes.
+    // We only orderBy("wpm", "desc") to avoid needing a composite index.
+    const q = query(scoresRef, orderBy("wpm", "desc"), limit(150));
 
     const unsubscribe = onSnapshot(
       q,
@@ -22,6 +23,17 @@ export function Leaderboard() {
         snapshot.forEach((doc) => {
           fetchedScores.push({ id: doc.id, ...doc.data() } as ScoreEntry);
         });
+        
+        // Sort in memory (wpm descending, then timestamp ascending)
+        fetchedScores.sort((a, b) => {
+          if (b.wpm !== a.wpm) {
+            return b.wpm - a.wpm;
+          }
+          const aTime = a.timestamp?.toMillis ? a.timestamp.toMillis() : (a.timestamp ? new Date(a.timestamp).getTime() : 0);
+          const bTime = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp ? new Date(b.timestamp).getTime() : 0);
+          return aTime - bTime;
+        });
+
         setScores(fetchedScores);
         setLoading(false);
       },
